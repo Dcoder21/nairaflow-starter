@@ -1,0 +1,6 @@
+   hello:
+     image: python:3.12-slim
+     script:
+       - cd services/api
+       - pip install -q -r requirements-dev.txt
+       - pytest -q
