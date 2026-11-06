@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NairaFlow Merchant Dashboard</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#1d2733}
+h1{color:#0a7d4f}table{width:100%;border-collapse:collapse;margin:1rem 0}
+td,th{border-bottom:1px solid #ddd;padding:.4rem;text-align:left;font-size:.9rem}
+form{display:flex;gap:.5rem;flex-wrap:wrap}input,button{padding:.5rem}button{background:#0a7d4f;color:#fff;border:0}
+</style></head><body>
+<h1>NairaFlow</h1>
+<h2>Accounts</h2><table id="acc"></table>
+<h2>New transfer</h2>
+<form id="f">
+<input name="from_account" placeholder="From (ACC001)" required>
+<input name="to_account" placeholder="To (ACC002)" required>
+<input name="amount_naira" type="number" min="1" placeholder="Amount (NGN)" required>
+<button>Send</button></form>
+<h2>Recent transfers</h2><table id="tx"></table>
+<script>
+const ngn = k => "₦" + (k/100).toLocaleString();
+async function load(){
+  const a = await (await fetch("/api/accounts")).json();
+  document.getElementById("acc").innerHTML = "<tr><th>ID</th><th>Owner</th><th>Balance</th></tr>" +
+    a.map(x=>`<tr><td>${x.id}</td><td>${x.owner}</td><td>${ngn(x.balance_kobo)}</td></tr>`).join("");
+  const t = await (await fetch("/api/transfers")).json();
+  document.getElementById("tx").innerHTML = "<tr><th>From</th><th>To</th><th>Amount</th><th>Status</th><th>Reason</th></tr>" +
+    t.map(x=>`<tr><td>${x.from_account}</td><td>${x.to_account}</td><td>${ngn(x.amount_kobo)}</td><td>${x.status}</td><td>${x.reason||""}</td></tr>`).join("");
+}
+document.getElementById("f").onsubmit = async e => {
+  e.preventDefault(); const d = Object.fromEntries(new FormData(e.target));
+  await fetch("/api/transfers",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({from_account:d.from_account,to_account:d.to_account,amount_kobo:Math.round(d.amount_naira*100)})});
+  e.target.reset(); setTimeout(load, 800);
+};
+load(); setInterval(load, 3000);
+</script></body></html>

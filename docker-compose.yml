@@ -1,0 +1,36 @@
+# Local dev only. Credentials here are throwaway; Project 1 moves real secrets out of files.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: nairaflow
+      POSTGRES_PASSWORD: nairaflow
+      POSTGRES_DB: nairaflow
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nairaflow"]
+      interval: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+  api:
+    build: ./services/api
+    env_file: .env
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+  worker:
+    build: ./services/worker
+    env_file: .env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+  web:
+    build: ./services/web
+    ports: ["8080:80"]
+    depends_on: [api]
+volumes:
+  pgdata:
